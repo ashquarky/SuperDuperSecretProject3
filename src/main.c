@@ -5,88 +5,78 @@
 #include <proc_ui/procui.h>
 #include <sysapp/launch.h>
 
-bool isAppRunning = true;
+#include <stdio.h>
 
-void
-SaveCallback()
-{
-   OSSavesDone_ReadyToRelease(); // Required
+#include "emu/EmulationManager.h"
+
+bool MainLoop() {
+
 }
 
-bool
-AppRunning()
-{
-   if(!OSIsMainCore())
-   {
-      ProcUISubProcessMessages(true);
-   }
-   else
-   {
-      ProcUIStatus status = ProcUIProcessMessages(true);
-    
-      if(status == PROCUI_STATUS_EXITING)
-      {
-          // Being closed, deinit, free, and prepare to exit
-          isAppRunning = false;
-          ProcUIShutdown();
-      }
-      else if(status == PROCUI_STATUS_RELEASE_FOREGROUND)
-      {
-          // Free up MEM1 to next foreground app, deinit screen, etc.
-          ProcUIDrawDoneRelease();
-      }
-      else if(status == PROCUI_STATUS_IN_FOREGROUND)
-      {
-         // Executed while app is in foreground
-      }
-   }
+bool initialized = false;
+bool InitApp() {
+	bool error = false;
 
-   return isAppRunning;
+	error |= EmulationManagerLoadROM("/vol/content/test.nes");
+	OSReport("Loaded ROM, error %d", error);
+	error |= EmulationManagerInit();
+	OSReport("Initialized EmulationManager, error %d", error);
+
+	if (error) {
+		initialized = false;
+		OSFatal("Could not init app!");
+		return true;
+	}
+
+	initialized = true;
+	return false;
 }
 
-int
-CoreEntryPoint(int argc, const char **argv)
-{
-   OSReport("Hello world from %s", argv[0]);
-   return argc;
+bool DeInitApp() {
+	bool error = false;
+
+	error |= EmulationManagerDeInit();
+
+	if (error) {
+		initialized = true;
+		OSFatal("Could not deinit app!");
+		return true;
+	}
+
+	initialized = false;
+	return false;
 }
 
-int
-main(int argc, char **argv)
-{
-   ProcUIInit(&SaveCallback);
-   OSReport("Main thread running on core %d", OSGetCoreId());
+bool RunApp() {
+	if(!OSIsMainCore()) {
+		ProcUISubProcessMessages(true);
+	} else {
+		ProcUIStatus status = ProcUIProcessMessages(true);
 
-   // Run thread on core 0
-   OSThread *threadCore0 = OSGetDefaultThread(0);
+		if(status == PROCUI_STATUS_EXITING) {
+			DeInitApp();
+			ProcUIShutdown();
+			return true;
+		} else if(status == PROCUI_STATUS_RELEASE_FOREGROUND) {
+			DeInitApp();
+			ProcUIDrawDoneRelease();
+		} else if(status == PROCUI_STATUS_IN_FOREGROUND) {
+			if (!initialized) InitApp();
+			if (MainLoop()) return true;
+		}
+	}
+	return false;
+}
 
-   const char *core0Args[] = {
-      "Core 0"
-   };
+//TODO: Learn about this function
+void SaveCallback() {
+	OSSavesDone_ReadyToRelease();
+}
 
-   OSRunThread(threadCore0, CoreEntryPoint, 0, core0Args);
+int main(int argc, char **argv) {
+	printf("Deal with it.");
 
-   // Run thread on core 2
-   OSThread *threadCore2 = OSGetDefaultThread(2);
-
-   const char *core2Args[] = {
-      "Core 2"
-   };
-
-   OSRunThread(threadCore2, CoreEntryPoint, 2, core2Args);
-
-   // Wait for threads to return
-   int resultCore0 = -1, resultCore2 = -1;
-   OSJoinThread(threadCore0, &resultCore0);
-   OSJoinThread(threadCore2, &resultCore2);
-
-   OSReport("Core 0 thread returned %d", resultCore0);
-   OSReport("Core 2 thread returned %d", resultCore2);
-   
-   // Sends messages for ProcUI to release foreground, exit
-   // and launch into the system menu immediately.
-   SYSLaunchMenu();
-   
-   while(AppRunning());
-   return 0;
+	while(!RunApp());
+	if (initialized) DeInitApp();
+	return 0;
 }

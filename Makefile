@@ -15,13 +15,14 @@ include $(WUT_ROOT)/rules/rpl.mk
 
 TARGET   := $(notdir $(CURDIR))
 BUILD    := build
-SOURCE   := src
-INCLUDE  := include
+SOURCE   := src src/emu src/emu/core ext/znes
+INCLUDE  := include ext
 DATA     := data
 LIBS     := -lgcc -lcrt -lcoreinit -lproc_ui -lsysapp
 
 CFLAGS   += -O2 -Wall -std=c11
 CXXFLAGS += -O2 -Wall
+LDFLAGS  += -Wl,-wrap,printf
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 

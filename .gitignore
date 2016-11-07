@@ -1,3 +1,7 @@
 *.elf
 *.rpx
 build
+
+content
+
+run-decaf
