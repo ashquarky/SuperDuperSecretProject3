@@ -1,0 +1,3 @@
+[submodule "ext/znes"]
+	path = ext/znes
+	url = https://github.com/QuarkTheAwesome/znes.git
