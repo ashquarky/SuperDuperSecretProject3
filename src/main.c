@@ -4,13 +4,14 @@
 #include <coreinit/foreground.h>
 #include <proc_ui/procui.h>
 #include <sysapp/launch.h>
+#include <gx2/event.h>
 
 #include <stdio.h>
 
 #include "emu/EmulationManager.h"
 
 bool MainLoop() {
-
+	EmulationManagerRunFrame();
 }
 
 bool initialized = false;
@@ -63,6 +64,7 @@ bool RunApp() {
 		} else if(status == PROCUI_STATUS_IN_FOREGROUND) {
 			if (!initialized) InitApp();
 			if (MainLoop()) return true;
+			GX2WaitForVsync();
 		}
 	}
 	return false;

@@ -18,7 +18,7 @@ BUILD    := build
 SOURCE   := src src/emu src/emu/core ext/znes
 INCLUDE  := include ext
 DATA     := data
-LIBS     := -lgcc -lcrt -lcoreinit -lproc_ui -lsysapp
+LIBS     := -lgcc -lcrt -lcoreinit -lproc_ui -lsysapp -lgx2
 
 CFLAGS   += -O2 -Wall -std=c11
 CXXFLAGS += -O2 -Wall

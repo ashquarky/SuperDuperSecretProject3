@@ -10,6 +10,8 @@
 #include <znes/mem.h>
 #include <znes/ppu.h>
 
+#include "EmulationManager.h"
+
 extern unsigned char* znes_mem;
 unsigned char* rom;
 
@@ -66,5 +68,8 @@ bool EmulationManagerLoadROM(char* path) {
 }
 
 void EmulationManagerRunFrame() {
-
+	for (int i = 1; i <= CPU_CYCLES_PER_FRAME; i++) { //hopefully gcc is smart enough to make a sexy loop
+		cpu_cycle();
+		ppu(cpu_getcycles());
+	}
 }
